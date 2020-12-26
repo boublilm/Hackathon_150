@@ -1,3 +1,5 @@
-import scapy.all as scapy
-from scapy.layers.inet import IP, UDP
-scapy.srloop(IP(dst="127.0.0.1")/UDP(dport=80))
+import socket
+s = socket(AF_INET, SOCK_DGRAM)
+s.bind(('127.0.0.1', 13117))
+m = s.recvfrom(1024)
+print m[0]
