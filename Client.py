@@ -3,6 +3,7 @@ import threading
 import sys
 import os
 import time
+from termcolor import colored, cprint
 
 
 class Client():
@@ -22,7 +23,9 @@ class Client():
 
         # Binds client to listen on port self.port. (will be 13117)
         s.bind(('', self.port))
-        print("Client started, listening for offer requests...")
+        # print()
+        cprint("Client started, listening for offer requests...",
+               'green', 'on_magenta')
 
         # Receives Message
         message, address = s.recvfrom(1024)
@@ -41,15 +44,14 @@ class Client():
             if data:
                 self.receievedData = True
                 os.system("stty -raw echo")
-                print(data)
+                cprint(data, 'cyan', 'on_red', attrs=['bold'])
 
     def connectTCPServer(self, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self.ip, port_tcp))
         s.send(bytes(self.teamName, encoding='utf8'))
         data = str(s.recv(1024), 'utf-8')
-        print(data)
-        start_time = time.time()
+        cprint(data, 'cyan', 'on_red', attrs=['bold'])
         thread = threading.Thread(target=self.dataReceive, args=(s,))
         thread.start()
         while not self.receievedData:

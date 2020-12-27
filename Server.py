@@ -3,6 +3,7 @@ import time
 import threading
 import random
 from _thread import start_new_thread
+from termcolor import colored, cprint
 
 
 class Server():
@@ -16,6 +17,8 @@ class Server():
         self.teams = []
         self.scores = [0, 0]
         self.lock = threading.Lock()
+        self.player_statistics = [{}, {}, {}, {}]
+        self.player_key_press = [0, 0, 0, 0]
 
     def startTCPServer(self):
         # Starts TCP Server via a thread.
@@ -29,16 +32,7 @@ class Server():
             time.sleep(0.5)
 
         c.send(bytes(
-            f"Welcome to Keyboard Spamming Battle Royale.\n\
-Group 1:\n\
-==\n\
-{self.teams[0]}\
-{self.teams[1]}\
-Group 2:\n\
-==\n\
-{self.teams[2]}\
-{self.teams[3]}\
-\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
+            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n{self.teams[0]}{self.teams[1]}Group 2:\n==\n{self.teams[2]}{self.teams[3]}\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
 
         index = self.teams.index(TeamName) // 2
         start_time = time.time()
@@ -48,19 +42,37 @@ Group 2:\n\
             if not data:
                 continue
             self.scores[index] += 1
+            num_key = self.player_statistics[index].get(data, 0) + 1
+            self.player_statistics[index][data] = num_key
+            self.player_key_press[index] += 1
 
         # send back string to client
         winner = 0 if (self.scores[0] > self.scores[1]) else 1
-        message = f"Game over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nCongratulations to the winners:\n==\n{self.teams[winner*2]}{self.teams[winner*2+1]}"
+        sorted_keys = sorted(
+            self.player_statistics[index].items(), key=lambda x: x[1], reverse=True)
+        most_common_key = sorted_keys[0][0].decode('utf-8')
+        most_common_key_pressed = sorted_keys[0][1]
+        least_common_key = sorted_keys[-1][0].decode('utf-8')
+        least_common_key_pressed = sorted_keys[-1][1]
+        max_press = max(self.player_key_press)
+        fastest_typer_index = self.player_key_press.index(max_press)
+        name = self.teams[fastest_typer_index].split('\n')[0]
+        message = f"\nGame over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nGlobal Results:\nThe fastest team was {name} with {max_press} characters!\n\nPersonal Results:\nYou pressed {self.player_key_press[index]} characters\nYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\nYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\nCongratulations to the winners:\n==\n{self.teams[winner*2]}{self.teams[winner*2+1]}"
         c.send(bytes(message, encoding='utf8'))
-        # print(self.scores)
         # connection closed
         c.close()
+        self.lock.acquire()
+        self.num_particants -= 1
+        self.lock.release()
+        self.player_key_press = [0, 0, 0, 0]
+        self.player_statistics = [{}, {}, {}, {}]
 
     def TCPServer(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((self.ip, self.port))
-        print(f"Server started, listening on IP address {self.ip}")
+        #print(f"Server started, listening on IP address {self.ip}")
+        cprint(
+            f"Server started, listening on IP address {self.ip}", 'yellow', 'on_magenta')
         self.startBroadcasting()
         s.listen(4)
         while True:
