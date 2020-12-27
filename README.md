@@ -6,6 +6,6 @@
 ### 🤵 Network Hackathon:
 - 🏦 Names : Maor Boublil, Shaked Almog
       <img src="https://media.giphy.com/media/WUlplcMpOCEmTGBtBW/giphy.gif" width="30">
-- 🤔 Our Assignment to the ```.Hackathon```
+- 🤔 Our Assignment to the ```Hackathon```
 - ⚡ Fun fact: we copied this readme.
 
