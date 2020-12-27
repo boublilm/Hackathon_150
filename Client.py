@@ -14,11 +14,14 @@ class Client():
 
     def listen(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
         # Binds client to listen on port self.port. (will be 13117)
         s.bind(('', self.port))
+
         # Receives Message
         message, address = s.recvfrom(1024)
         print(message)
+
         # Message Teardown.
         magic_cookie = message[:4]
         message_type = message[4]
