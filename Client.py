@@ -3,6 +3,8 @@ import threading
 import sys
 import os
 import time
+import random
+import colorama
 from termcolor import colored, cprint
 
 
@@ -20,13 +22,10 @@ class Client():
 
     def listen(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+        text = colorama.Fore.BLUE + "Client started, listening for offer requests..."
+        self.pretty_print(text)
         # Binds client to listen on port self.port. (will be 13117)
         s.bind(('', self.port))
-        # print()
-        cprint("Client started, listening for offer requests...",
-               'green', 'on_magenta')
-
         # Receives Message
         message, address = s.recvfrom(1024)
 
@@ -37,6 +36,14 @@ class Client():
         self.connectTCPServer(int.from_bytes(
             port_tcp, byteorder='big', signed=False))
 
+    def pretty_print(self, data):
+        bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
+        codes = vars(colorama.Fore)
+        colors = [codes[color] for color in codes if color not in bad_colors]
+        colored_chars = [random.choice(colors) + char for char in data]
+
+        print(''.join(colored_chars))
+
     def dataReceive(self, s):
         data = None
         while not self.receievedData:
@@ -44,14 +51,14 @@ class Client():
             if data:
                 self.receievedData = True
                 os.system("stty -raw echo")
-                cprint(data, 'cyan', 'on_red', attrs=['bold'])
+                self.pretty_print(data)
 
     def connectTCPServer(self, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((self.ip, port_tcp))
         s.send(bytes(self.teamName, encoding='utf8'))
         data = str(s.recv(1024), 'utf-8')
-        cprint(data, 'cyan', 'on_red', attrs=['bold'])
+        self.pretty_print(data)
         thread = threading.Thread(target=self.dataReceive, args=(s,))
         thread.start()
         while not self.receievedData:

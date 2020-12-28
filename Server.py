@@ -4,6 +4,7 @@ import threading
 import random
 from _thread import start_new_thread
 from termcolor import colored, cprint
+import colorama
 
 
 class Server():
@@ -67,12 +68,19 @@ class Server():
         self.player_key_press = [0, 0, 0, 0]
         self.player_statistics = [{}, {}, {}, {}]
 
+    def pretty_print(self, data):
+        bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
+        codes = vars(colorama.Fore)
+        colors = [codes[color] for color in codes if color not in bad_colors]
+        colored_chars = [random.choice(colors) + char for char in data]
+
+        print(''.join(colored_chars))
+
     def TCPServer(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((self.ip, self.port))
-        #print(f"Server started, listening on IP address {self.ip}")
-        cprint(
-            f"Server started, listening on IP address {self.ip}", 'yellow', 'on_magenta')
+        text = f"Server started, listening on IP address {self.ip}"
+        self.pretty_print(text)
         self.startBroadcasting()
         s.listen(4)
         while True:
