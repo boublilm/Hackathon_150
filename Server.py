@@ -33,12 +33,17 @@ class Server():
         while not self.start_game:
             time.sleep(0.5)
 
+        # setting team names in a variable
         team1 = ''.join(self.teams[:int(len(self.teams)/2)])
         team2 = ''.join(self.teams[int(len(self.teams)/2):])
+
+        # S Sending start message
         c.send(bytes(
             f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n{team1}Group 2:\n==\n{team2}\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
 
         index = self.teams.index(TeamName) // 2
+
+        # While not past 10 seconds - listen to key presses.
         start_time = time.time()
         while time.time() - start_time < 10:
             # data received from client
@@ -50,7 +55,7 @@ class Server():
             self.player_statistics[index][data] = num_key
             self.player_key_press[index] += 1
 
-        # send back string to client
+        # Statistics
         winner = 0 if (self.scores[0] > self.scores[1]) else 1
         winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
         sorted_keys = sorted(
@@ -62,11 +67,16 @@ class Server():
         max_press = max(self.player_key_press)
         fastest_typer_index = self.player_key_press.index(max_press)
         name = self.teams[fastest_typer_index].split('\n')[0]
+
+        # Game Over Message
         message = f"\nGame over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nGlobal Results:\nThe fastest team was {name} with {max_press} characters!\n\nPersonal Results:\nYou pressed {self.player_key_press[index]} characters\nYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\nYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\nCongratulations to the winners:\n==\n{winner_team}"
         c.send(bytes(message, encoding='utf8'))
         self.start_game = False
         # connection closed
         c.close()
+        self.default_server
+
+    def default_server(self):
         self.lock.acquire()
         self.num_particants -= 1
         self.lock.release()

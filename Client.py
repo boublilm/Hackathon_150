@@ -46,16 +46,24 @@ class Client():
 
         print(''.join(colored_chars))
 
-    def connectTCPServer(self, port_tcp):
+    def connectTCPServer(self, ip_tcp, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # connect to tcp server
         s.connect((self.ip, port_tcp))
+
+        # Sending team name
         s.send(bytes(self.teamName, encoding='utf8'))
+
+        # Receive data from Server
         data = str(s.recv(1024), 'utf-8')
         self.pretty_print(data)
+
+        # Setting blocking to false, Data to none and removing key presses representation
         data = None
         s.setblocking(False)
         os.system("stty raw -echo")
         while True:
+            # if data is recieved it will stop and print, else it will send every key press to the server.
             try:
                 data = s.recv(1024)
             except:
