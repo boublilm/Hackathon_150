@@ -20,6 +20,7 @@ class Server():
         self.lock = threading.Lock()
         self.player_statistics = [{}, {}, {}, {}]
         self.player_key_press = [0, 0, 0, 0]
+        self.start_game = False
 
     def startTCPServer(self):
         # Starts TCP Server via a thread.
@@ -28,12 +29,14 @@ class Server():
 
     def clientHandler(self, c):
         TeamName = str(c.recv(1024), 'utf-8')
-        self.teams += [TeamName]*4
-        while self.num_particants < 1:
+        self.teams += [TeamName]
+        while not self.start_game:
             time.sleep(0.5)
 
+        team1 = ''.join(self.teams[:int(len(self.teams)/2)])
+        team2 = ''.join(self.teams[int(len(self.teams)/2):])
         c.send(bytes(
-            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n{self.teams[0]}{self.teams[1]}Group 2:\n==\n{self.teams[2]}{self.teams[3]}\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
+            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n{team1}Group 2:\n==\n{team2}\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
 
         index = self.teams.index(TeamName) // 2
         start_time = time.time()
@@ -49,6 +52,7 @@ class Server():
 
         # send back string to client
         winner = 0 if (self.scores[0] > self.scores[1]) else 1
+        winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
         sorted_keys = sorted(
             self.player_statistics[index].items(), key=lambda x: x[1], reverse=True)
         most_common_key = sorted_keys[0][0].decode('utf-8')
@@ -58,8 +62,9 @@ class Server():
         max_press = max(self.player_key_press)
         fastest_typer_index = self.player_key_press.index(max_press)
         name = self.teams[fastest_typer_index].split('\n')[0]
-        message = f"\nGame over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nGlobal Results:\nThe fastest team was {name} with {max_press} characters!\n\nPersonal Results:\nYou pressed {self.player_key_press[index]} characters\nYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\nYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\nCongratulations to the winners:\n==\n{self.teams[winner*2]}{self.teams[winner*2+1]}"
+        message = f"\nGame over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nGlobal Results:\nThe fastest team was {name} with {max_press} characters!\n\nPersonal Results:\nYou pressed {self.player_key_press[index]} characters\nYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\nYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\nCongratulations to the winners:\n==\n{winner_team}"
         c.send(bytes(message, encoding='utf8'))
+        self.start_game = False
         # connection closed
         c.close()
         self.lock.acquire()
@@ -82,7 +87,7 @@ class Server():
         text = f"Server started, listening on IP address {self.ip}"
         self.pretty_print(text)
         self.startBroadcasting()
-        s.listen(4)
+        s.listen()
         while True:
 
             # establish connection with client
@@ -108,23 +113,30 @@ class Server():
         self.toBroadcast = False
 
     def broadcast(self):
-        server = socket.socket(
-            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        # Enable port reusage
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        # Enable broadcasting mode
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        while True:
+            if not self.start_game:
+                start_time = time.time()
+                server = socket.socket(
+                    socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                # Enable port reusage
+                server.setsockopt(socket.SOL_SOCKET,
+                                  socket.SO_REUSEPORT, 1)
+                # Enable broadcasting mode
+                server.setsockopt(socket.SOL_SOCKET,
+                                  socket.SO_BROADCAST, 1)
 
-        # Set a timeout so the socket does not block
-        # indefinitely when trying to receive data.
-        server.settimeout(0.2)
-        magic_cookie = "feedbeef"
-        message_type = "02"
-        x = bytes.fromhex(magic_cookie)
-        y = bytes.fromhex(message_type)
-        z = self.port.to_bytes(2, byteorder='big')
-        message = x + y + z
+                # Set a timeout so the socket does not block
+                # indefinitely when trying to receive data.
+                server.settimeout(0.2)
+                magic_cookie = "feedbeef"
+                message_type = "02"
+                x = bytes.fromhex(magic_cookie)
+                y = bytes.fromhex(message_type)
+                z = self.port.to_bytes(2, byteorder='big')
+                message = x + y + z
 
-        while self.broadcast:
-            server.sendto(message, ('<broadcast>', self.broadcastPort))
-            time.sleep(1)
+                while time.time() - start_time < 10:
+                    server.sendto(
+                        message, ('<broadcast>', self.broadcastPort))
+                    time.sleep(1)
+                self.start_game = True

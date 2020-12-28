@@ -22,16 +22,19 @@ class Client():
 
     def listen(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        text = colorama.Fore.BLUE + "Client started, listening for offer requests..."
+        text = "Client started, listening for offer requests..."
         self.pretty_print(text)
         # Binds client to listen on port self.port. (will be 13117)
-        s.bind(('', self.port))
+        try:
+            s.bind(('', self.port))
+        except:
+            self.listen()
         # Receives Message
-        message, address = s.recvfrom(1024)
+        message = s.recvfrom(1024)[0]
 
         # Message Teardown.
-        magic_cookie = message[:4]
-        message_type = message[4]
+        # magic_cookie = message[:4]
+        # message_type = message[4]
         port_tcp = message[5:]
         self.connectTCPServer(int.from_bytes(
             port_tcp, byteorder='big', signed=False))
@@ -55,7 +58,10 @@ class Client():
 
     def connectTCPServer(self, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((self.ip, port_tcp))
+        try:
+            s.connect((self.ip, port_tcp))
+        except:
+            self.listen()
         s.send(bytes(self.teamName, encoding='utf8'))
         data = str(s.recv(1024), 'utf-8')
         self.pretty_print(data)
