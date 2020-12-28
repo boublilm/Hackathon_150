@@ -5,7 +5,6 @@ import os
 import time
 import random
 import colorama
-from termcolor import colored, cprint
 
 
 class Client():
@@ -47,29 +46,27 @@ class Client():
 
         print(''.join(colored_chars))
 
-    def dataReceive(self, s):
-        data = None
-        while not self.receievedData:
-            data = str(s.recv(1024), 'utf-8')
-            if data:
-                self.receievedData = True
-                os.system("stty -raw echo")
-                self.pretty_print(data)
-
     def connectTCPServer(self, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.connect((self.ip, port_tcp))
-        except:
-            self.listen()
+        s.connect((self.ip, port_tcp))
         s.send(bytes(self.teamName, encoding='utf8'))
         data = str(s.recv(1024), 'utf-8')
         self.pretty_print(data)
-        thread = threading.Thread(target=self.dataReceive, args=(s,))
-        thread.start()
-        while not self.receievedData:
-            os.system("stty raw -echo")
-            c = sys.stdin.read(1)
-            s.send(bytes(c, encoding='utf8'))
-            os.system("stty -raw echo")
+        data = None
+        s.setblocking(False)
+        os.system("stty raw -echo")
+        while True:
+            try:
+                data = s.recv(1024)
+            except:
+                pass
+            if data:
+                os.system("stty -raw echo")
+                data = str(data, 'utf-8')
+                self.receievedData = True
+                self.pretty_print(data)
+                break
+            else:
+                c = sys.stdin.read(1)
+                s.send(bytes(c, encoding='utf8'))
         s.close()

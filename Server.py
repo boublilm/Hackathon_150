@@ -3,8 +3,8 @@ import time
 import threading
 import random
 from _thread import start_new_thread
-from termcolor import colored, cprint
 import colorama
+import struct
 
 
 class Server():
