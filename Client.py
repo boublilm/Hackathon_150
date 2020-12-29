@@ -32,7 +32,7 @@ class Client():
             # Receives Message
             message, address = s.recvfrom(1024)
             try:
-                magic_cookie, message_type, port_tcp = struct.unpack('IbH', message)
+                magic_cookie, message_type, port_tcp = struct.unpack('Ibh', message)
             except:
                 continue
 

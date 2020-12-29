@@ -140,6 +140,6 @@ class Server():
                 server.settimeout(0.2)
 
                 while time.time() - start_time < 10:
-                    server.sendto(struct.pack('IbH', 0xfeedbeef, 2, 2025), ('<broadcast>', self.broadcastPort))
+                    server.sendto(struct.pack('Ibh', 0xfeedbeef, 2, 2025), ('<broadcast>', self.broadcastPort))
                     time.sleep(1)
                 self.start_game = True
