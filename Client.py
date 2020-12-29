@@ -52,7 +52,7 @@ class Client():
     def connectTCPServer(self, ip_tcp, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # connect to tcp server
-        s.connect((self.ip, port_tcp))
+        s.connect((ip_tcp, port_tcp))
 
         # Sending team name
         s.send(bytes(self.teamName, encoding='utf8'))
