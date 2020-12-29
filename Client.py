@@ -54,10 +54,9 @@ class Client():
         # connect to tcp server
         while True:
             try:
-                s.connect(('127.0.0.1', port_tcp))
+                s.connect((ip_tcp, port_tcp))
                 break
             except:
-                print("p")
                 pass
 
         # Sending team name
