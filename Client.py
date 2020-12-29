@@ -5,6 +5,7 @@ import os
 import struct
 import random
 import colorama
+from select import select
 
 
 class Client():
@@ -12,6 +13,7 @@ class Client():
         self.ip = IP
         self.port = PORT
         self.teamName = "Bullshit-Name\n"
+        self.listenToBroadcast()
 
     def listenToBroadcast(self):
         while True:
@@ -20,20 +22,23 @@ class Client():
             self.pretty_print(text)
             # Binds client to listen on port self.port. (will be 13117)
             while True:
-                try:
-                    s.bind(('', self.port))  # TODO: check if its ok not on localhost
-                except:
-                    continue
+                # try:
+                # TODO: check if its ok not on localhost
+                s.bind(('', self.port))  # TODO: ERROR second try
+                # except:
+                #     continue
                 # Receives Message
                 message, address = s.recvfrom(1024)
                 try:
-                    magic_cookie, message_type, port_tcp = struct.unpack('Ibh', message)
+                    magic_cookie, message_type, port_tcp = struct.unpack(
+                        'Ibh', message)
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
                 except:
                     continue
 
-                if magic_cookie != 0xfeedbeef or message_type != 0x2: continue
+                if magic_cookie != 0xfeedbeef or message_type != 0x2:
+                    continue
                 break
 
             self.connectTCPServer(address[0], port_tcp)
@@ -51,7 +56,8 @@ class Client():
         # connect to tcp server
         while True:
             try:
-                s.connect(('localhost', port_tcp))  # TODO: CHANGE IP TO NON LOCAL
+                # TODO: CHANGE IP TO NON LOCAL
+                s.connect(('localhost', port_tcp))
                 break
             except:
                 return
@@ -79,8 +85,11 @@ class Client():
                 self.pretty_print(data)
                 break
             else:
-                c = sys.stdin.read(1)
-                s.send(bytes(c, encoding='utf8'))
+                rlist, _, _ = select([sys.stdin], [], [], 0.1)
+                if rlist:
+                    c = sys.stdin.read(1)
+                    s.send(bytes(c, encoding='utf8'))
 
         s.close()
-        self.pretty_print("Server disconnected, listening for offer requests...")
+        self.pretty_print(
+            "Server disconnected, listening for offer requests...")

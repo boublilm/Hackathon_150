@@ -5,6 +5,8 @@ import random
 from _thread import start_new_thread
 import colorama
 import struct
+from select import select
+
 
 class Server():
     def __init__(self, IP, PORT, broadcastPort):
@@ -20,6 +22,7 @@ class Server():
         self.player_key_press = []
         self.start_game = False
         self.game_finished = False
+        self.num_participants = 0
 
     def startTCPServer(self):
         # Starts TCP Server via a thread.
@@ -47,31 +50,41 @@ class Server():
         start_time = time.time()
         while time.time() - start_time < 10:
             # data received from client
-            data = c.recv(1024)
-            if not data:
-                continue
-            self.scores[team_index] += 1
-            num_key = self.player_statistics[index].get(data, 0) + 1
-            self.player_statistics[index][data] = num_key
-            self.player_key_press[index] += 1
+            try:
+                rlist, _, _ = select([c], [], [], 0.1)
+                if rlist:
+                    data = c.recv(1024)  # TODO: TIMEOUT
+                    if not data:
+                        continue
+                    self.scores[team_index] += 1
+                    num_key = self.player_statistics[index].get(data, 0) + 1
+                    self.player_statistics[index][data] = num_key
+                    self.player_key_press[index] += 1
+            except:
+                pass
 
         # Statistics
-        winner = 0 if (self.scores[0] > self.scores[1]) else 1 if self.scores[0] < self.scores[1] else -1
+        winner = 0 if (self.scores[0] > self.scores[1]
+                       ) else 1 if self.scores[0] < self.scores[1] else -1
         winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
-        sorted_keys = sorted(
-            self.player_statistics[index].items(), key=lambda x: x[1], reverse=True)
-        most_common_key = sorted_keys[0][0].decode('utf-8')
-        most_common_key_pressed = sorted_keys[0][1]
-        least_common_key = sorted_keys[-1][0].decode('utf-8')
-        least_common_key_pressed = sorted_keys[-1][1]
         max_press = max(self.player_key_press)
         fastest_typer_index = self.player_key_press.index(max_press)
         name = self.teams[fastest_typer_index].split('\n')[0]
 
+        # personal statistics
+        played = len(self.player_statistics[index]) > 0
+        if played:
+            sorted_keys = sorted(
+                self.player_statistics[index].items(), key=lambda x: x[1], reverse=True)
+            most_common_key = sorted_keys[0][0].decode('utf-8')
+            most_common_key_pressed = sorted_keys[0][1]
+            least_common_key = sorted_keys[-1][0].decode('utf-8')
+            least_common_key_pressed = sorted_keys[-1][1]
+
         # Game Over Message
         game_finished = f"\nGame over!\n" \
-                      f"Group 1 typed in {self.scores[0]} characters. " \
-                      f"Group 2 typed in {self.scores[1]} characters.\n"
+            f"Group 1 typed in {self.scores[0]} characters. " \
+            f"Group 2 typed in {self.scores[1]} characters.\n"
         if winner < 0:
             results = f"This is a TIE!\n"
         else:
@@ -81,10 +94,14 @@ class Server():
         global_stat = f"Global Results:\n" \
                       f"\tThe fastest team was {name} with {max_press} characters!\n\n"
 
-        personal = f"Personal Results:\n" \
-                   f"\tYou pressed {self.player_key_press[index]} characters\n" \
-                   f"\tYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\n" \
-                   f"\tYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\n"
+        if played:
+            personal = f"Personal Results:\n" \
+                f"\tYou pressed {self.player_key_press[index]} characters\n" \
+                f"\tYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\n" \
+                f"\tYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\n"
+        else:
+            personal = f"Personal Results:\n" \
+                f"You suck! You didn't type anything!!"
 
         message = game_finished + results + global_stat + personal
 
@@ -99,6 +116,7 @@ class Server():
         self.lock.acquire()
         self.player_key_press = []
         self.player_statistics = []
+        self.num_participants = 0
         self.lock.release()
 
     def pretty_print(self, data):
@@ -110,27 +128,37 @@ class Server():
         print(''.join(colored_chars))
 
     def TCPServer(self):
-        while True:
+        while True:  # TODO: SERVER NOT COMING BACK?!!?!?
+            # TODO: SERVER WILL NOT RUN WITH 0 PARTICIPANTS!
             self.game_finished = False
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.bind((self.ip, self.port))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind((self.ip, self.port))
+            except:
+                continue
             text = f"Server started, listening on IP address {self.ip}"
             self.pretty_print(text)
             self.startBroadcasting()
             s.listen()
             while not self.game_finished:
-
+                if self.start_game and self.num_participants == 0:
+                    self.start_game = False
+                    break
                 # establish connection with client
-                c, addr = s.accept()
+                rlist, _, _ = select([s], [], [], 2)
+                if rlist:
+                    c, addr = s.accept()
 
-                self.lock.acquire()
-                self.player_key_press.append(0)
-                self.player_statistics.append({})
-                random.shuffle(self.teams)
-                self.lock.release()
+                    self.lock.acquire()
+                    self.num_participants += 1
+                    self.player_key_press.append(0)
+                    self.player_statistics.append({})
+                    random.shuffle(self.teams)
+                    self.lock.release()
 
-                # Start a new thread and return its identifier
-                start_new_thread(self.clientHandler, (c,))
+                    # Start a new thread and return its identifier
+                    start_new_thread(self.clientHandler, (c,))
             s.close()
             self.pretty_print("Game over, sending out offer requests...")
 
@@ -155,6 +183,7 @@ class Server():
         server.settimeout(0.2)
 
         while time.time() - start_time < 10:
-            server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2, self.port), ('<broadcast>', self.broadcastPort))
+            server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2,
+                                      self.port), ('<broadcast>', self.broadcastPort))
             time.sleep(1)
         self.start_game = True
