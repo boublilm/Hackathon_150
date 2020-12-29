@@ -12,14 +12,14 @@ class Server():
         self.port = PORT
         self.toBroadcast = True
         self.broadcastPort = broadcastPort
-        self.num_particants = 0
         self.startTCPServer()
         self.teams = []
         self.scores = [0, 0]
         self.lock = threading.Lock()
-        self.player_statistics = [{}, {}, {}, {}] # TODO: not 4 people!!!!
-        self.player_key_press = [0, 0, 0, 0]
+        self.player_statistics = []
+        self.player_key_press = []
         self.start_game = False
+        self.game_finished = False
 
     def startTCPServer(self):
         # Starts TCP Server via a thread.
@@ -56,7 +56,7 @@ class Server():
             self.player_key_press[index] += 1
 
         # Statistics
-        winner = 0 if (self.scores[0] > self.scores[1]) else 1 # TODO: WHAT ABOUT TIE?
+        winner = 0 if (self.scores[0] > self.scores[1]) else 1 if self.scores[0] < self.scores[1] else -1
         winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
         sorted_keys = sorted(
             self.player_statistics[index].items(), key=lambda x: x[1], reverse=True)
@@ -69,30 +69,36 @@ class Server():
         name = self.teams[fastest_typer_index].split('\n')[0]
 
         # Game Over Message
-        message = f"\nGame over!\n" \
-                  f"Group 1 typed in {self.scores[0]} characters. " \
-                  f"Group 2 typed in {self.scores[1]} characters.\n" \
-                  f"Group {winner+1} wins!\n\n" \
-                  f"Global Results:\n" \
-                  f"\tThe fastest team was {name} with {max_press} characters!\n\n" \
-                  f"Personal Results:\n" \
-                  f"\tYou pressed {self.player_key_press[index]} characters\n" \
-                  f"\tYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\n" \
-                  f"\tYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\n" \
-                  f"Congratulations to the winners:\n{winner_team}"
+        game_finished = f"\nGame over!\n" \
+                      f"Group 1 typed in {self.scores[0]} characters. " \
+                      f"Group 2 typed in {self.scores[1]} characters.\n"
+        if winner < 0:
+            results = f"This is a TIE!\n"
+        else:
+            results = f"Group {winner+1} wins!\n\n" \
+                      f"Congratulations to the winners:\n{winner_team}\n"
+
+        global_stat = f"Global Results:\n" \
+                      f"\tThe fastest team was {name} with {max_press} characters!\n\n"
+
+        personal = f"Personal Results:\n" \
+                   f"\tYou pressed {self.player_key_press[index]} characters\n" \
+                   f"\tYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\n" \
+                   f"\tYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\n"
+
+        message = game_finished + results + global_stat + personal
 
         c.send(bytes(message, encoding='utf8'))
         self.start_game = False
         # connection closed
         c.close()
+        self.game_finished = True
         self.default_server()
 
     def default_server(self):
         self.lock.acquire()
-        self.num_particants -= 1
-        self.lock.release()
-        self.player_key_press = [0, 0, 0, 0]
-        self.player_statistics = [{}, {}, {}, {}]
+        self.player_key_press = []
+        self.player_statistics = []
         self.lock.release()
 
     def pretty_print(self, data):
@@ -104,25 +110,29 @@ class Server():
         print(''.join(colored_chars))
 
     def TCPServer(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((self.ip, self.port))
-        text = f"Server started, listening on IP address {self.ip}"
-        self.pretty_print(text)
-        self.startBroadcasting()
-        s.listen()
         while True:
+            self.game_finished = False
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.bind((self.ip, self.port))
+            text = f"Server started, listening on IP address {self.ip}"
+            self.pretty_print(text)
+            self.startBroadcasting()
+            s.listen()
+            while not self.game_finished:
 
-            # establish connection with client
-            c, addr = s.accept()
+                # establish connection with client
+                c, addr = s.accept()
 
-            self.lock.acquire()
-            self.num_particants += 1
-            random.shuffle(self.teams)
-            self.lock.release()
+                self.lock.acquire()
+                self.player_key_press.append(0)
+                self.player_statistics.append({})
+                random.shuffle(self.teams)
+                self.lock.release()
 
-            # Start a new thread and return its identifier
-            start_new_thread(self.clientHandler, (c,))
-        s.close()
+                # Start a new thread and return its identifier
+                start_new_thread(self.clientHandler, (c,))
+            s.close()
+            self.pretty_print("Game over, sending out offer requests...")
 
     def startBroadcasting(self):
         # Starts Broadcasting via a thread.
@@ -134,23 +144,21 @@ class Server():
         self.toBroadcast = False
 
     def broadcast(self):
-        while True:
-            if not self.start_game: # TODO: stop while after end game broadcast again
-                start_time = time.time()
-                server = socket.socket(
-                    socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-                # Enable port reusage
-                server.setsockopt(socket.SOL_SOCKET,
-                                  socket.SO_REUSEADDR, 1)
-                # Enable broadcasting mode
-                server.setsockopt(socket.SOL_SOCKET,
-                                  socket.SO_BROADCAST, 1)
+        start_time = time.time()
+        server = socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        # Enable port reusage
+        server.setsockopt(socket.SOL_SOCKET,
+                          socket.SO_REUSEADDR, 1)
+        # Enable broadcasting mode
+        server.setsockopt(socket.SOL_SOCKET,
+                          socket.SO_BROADCAST, 1)
 
-                # Set a timeout so the socket does not block
-                # indefinitely when trying to receive data.
-                server.settimeout(0.2)
+        # Set a timeout so the socket does not block
+        # indefinitely when trying to receive data.
+        server.settimeout(0.2)
 
-                while time.time() - start_time < 10:
-                    server.sendto(struct.pack('Ibh', 0xfeedbeef, 2, self.port), ('<broadcast>', self.broadcastPort))
-                    time.sleep(1)
-                self.start_game = True
+        while time.time() - start_time < 10:
+            server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2, self.port), ('<broadcast>', self.broadcastPort))
+            time.sleep(1)
+        self.start_game = True

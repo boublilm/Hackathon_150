@@ -14,28 +14,29 @@ class Client():
         self.teamName = "Bullshit-Name\n"
 
     def listenToBroadcast(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        text = "Client started, listening for offer requests..."
-        self.pretty_print(text)
-        # Binds client to listen on port self.port. (will be 13117)
         while True:
-            try:
-                s.bind(('', self.port))  # TODO: check if its ok not on localhost
-            except:
-                continue
-            # Receives Message
-            message, address = s.recvfrom(1024)
-            try:
-                magic_cookie, message_type, port_tcp = struct.unpack('Ibh', message)
-                text = f"Received offer from {address[0]}, attempting to connect..."
-                self.pretty_print(text)
-            except:
-                continue
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            text = "Client started, listening for offer requests..."
+            self.pretty_print(text)
+            # Binds client to listen on port self.port. (will be 13117)
+            while True:
+                try:
+                    s.bind(('', self.port))  # TODO: check if its ok not on localhost
+                except:
+                    continue
+                # Receives Message
+                message, address = s.recvfrom(1024)
+                try:
+                    magic_cookie, message_type, port_tcp = struct.unpack('Ibh', message)
+                    text = f"Received offer from {address[0]}, attempting to connect..."
+                    self.pretty_print(text)
+                except:
+                    continue
 
-            if magic_cookie != 0xfeedbeef: continue
-            break
+                if magic_cookie != 0xfeedbeef or message_type != 0x2: continue
+                break
 
-        self.connectTCPServer(address[0], port_tcp)
+            self.connectTCPServer(address[0], port_tcp)
 
     def pretty_print(self, data):
         bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
@@ -53,12 +54,12 @@ class Client():
                 s.connect(('localhost', port_tcp))  # TODO: CHANGE IP TO NON LOCAL
                 break
             except:
-                pass  # TODO: DONT GET INTO INFINITE LOOP!
+                return
 
         # Sending team name
         s.send(bytes(self.teamName, encoding='utf8'))
 
-        # Receive data from Server
+        # Receive data from Server - start game
         data = str(s.recv(1024), 'utf-8')
         self.pretty_print(data)
 
@@ -82,3 +83,4 @@ class Client():
                 s.send(bytes(c, encoding='utf8'))
 
         s.close()
+        self.pretty_print("Server disconnected, listening for offer requests...")
