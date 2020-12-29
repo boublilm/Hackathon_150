@@ -52,7 +52,13 @@ class Client():
     def connectTCPServer(self, ip_tcp, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # connect to tcp server
-        s.connect((ip_tcp, port_tcp))
+        while True:
+            try:
+                s.connect(('127.0.0.1', port_tcp))
+                break
+            except:
+                print("p")
+                pass
 
         # Sending team name
         s.send(bytes(self.teamName, encoding='utf8'))
@@ -80,4 +86,5 @@ class Client():
             else:
                 c = sys.stdin.read(1)
                 s.send(bytes(c, encoding='utf8'))
+
         s.close()

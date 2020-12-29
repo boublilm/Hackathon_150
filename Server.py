@@ -6,7 +6,6 @@ from _thread import start_new_thread
 import colorama
 import struct
 
-
 class Server():
     def __init__(self, IP, PORT, broadcastPort):
         self.ip = IP
@@ -36,13 +35,12 @@ class Server():
         # setting team names in a variable
         team1 = ''.join(self.teams[:int(len(self.teams)/2)])
         team2 = ''.join(self.teams[int(len(self.teams)/2):])
-
         # S Sending start message
         c.send(bytes(
-            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n==\n{team1}Group 2:\n==\n{team2}\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
+            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n{team1}Group 2:\n{team2}\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
 
         index = self.teams.index(TeamName) // 2
-
+        team_index = 0 if TeamName in team1 else 1
         # While not past 10 seconds - listen to key presses.
         start_time = time.time()
         while time.time() - start_time < 10:
@@ -50,7 +48,7 @@ class Server():
             data = c.recv(1024)
             if not data:
                 continue
-            self.scores[index] += 1
+            self.scores[team_index] += 1
             num_key = self.player_statistics[index].get(data, 0) + 1
             self.player_statistics[index][data] = num_key
             self.player_key_press[index] += 1
@@ -69,7 +67,7 @@ class Server():
         name = self.teams[fastest_typer_index].split('\n')[0]
 
         # Game Over Message
-        message = f"\nGame over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nGlobal Results:\nThe fastest team was {name} with {max_press} characters!\n\nPersonal Results:\nYou pressed {self.player_key_press[index]} characters\nYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\nYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\nCongratulations to the winners:\n==\n{winner_team}"
+        message = f"\nGame over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nGlobal Results:\nThe fastest team was {name} with {max_press} characters!\n\nPersonal Results:\nYou pressed {self.player_key_press[index]} characters\nYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\nYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\nCongratulations to the winners:\n{winner_team}"
         c.send(bytes(message, encoding='utf8'))
         self.start_game = False
         # connection closed
