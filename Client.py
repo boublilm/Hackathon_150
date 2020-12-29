@@ -12,27 +12,23 @@ class Client():
         self.ip = IP
         self.port = PORT
         self.teamName = "Bullshit-Name\n"
-        self.receievedData = False
 
     def listenToBroadcast(self):
-        # Creates a thread to start listening for broadcasts.
-        thread = threading.Thread(target=self.listen)
-        thread.start()
-
-    def listen(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         text = "Client started, listening for offer requests..."
         self.pretty_print(text)
         # Binds client to listen on port self.port. (will be 13117)
         while True:
             try:
-                s.bind(('', self.port))
+                s.bind(('', self.port))  # TODO: check if its ok not on localhost
             except:
                 continue
             # Receives Message
             message, address = s.recvfrom(1024)
             try:
                 magic_cookie, message_type, port_tcp = struct.unpack('Ibh', message)
+                text = f"Received offer from {address[0]}, attempting to connect..."
+                self.pretty_print(text)
             except:
                 continue
 
@@ -54,10 +50,10 @@ class Client():
         # connect to tcp server
         while True:
             try:
-                s.connect((ip_tcp, port_tcp))
+                s.connect(('localhost', port_tcp))  # TODO: CHANGE IP TO NON LOCAL
                 break
             except:
-                pass
+                pass  # TODO: DONT GET INTO INFINITE LOOP!
 
         # Sending team name
         s.send(bytes(self.teamName, encoding='utf8'))
@@ -79,7 +75,6 @@ class Client():
             if data:
                 os.system("stty -raw echo")
                 data = str(data, 'utf-8')
-                self.receievedData = True
                 self.pretty_print(data)
                 break
             else:

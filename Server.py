@@ -17,7 +17,7 @@ class Server():
         self.teams = []
         self.scores = [0, 0]
         self.lock = threading.Lock()
-        self.player_statistics = [{}, {}, {}, {}]
+        self.player_statistics = [{}, {}, {}, {}] # TODO: not 4 people!!!!
         self.player_key_press = [0, 0, 0, 0]
         self.start_game = False
 
@@ -29,15 +29,17 @@ class Server():
     def clientHandler(self, c):
         TeamName = str(c.recv(1024), 'utf-8')
         self.teams += [TeamName]
+
         while not self.start_game:
-            time.sleep(0.5)
+            time.sleep(0.1)
 
         # setting team names in a variable
         team1 = ''.join(self.teams[:int(len(self.teams)/2)])
         team2 = ''.join(self.teams[int(len(self.teams)/2):])
         # S Sending start message
         c.send(bytes(
-            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n{team1}Group 2:\n{team2}\nStart pressing keys on your keyboard as fast as you can!!", encoding='utf8'))
+            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n{team1}Group 2:\n{team2}\nStart pressing keys on your keyboard as fast as you can!!",
+            encoding='utf8'))
 
         index = self.teams.index(TeamName) // 2
         team_index = 0 if TeamName in team1 else 1
@@ -54,7 +56,7 @@ class Server():
             self.player_key_press[index] += 1
 
         # Statistics
-        winner = 0 if (self.scores[0] > self.scores[1]) else 1
+        winner = 0 if (self.scores[0] > self.scores[1]) else 1 # TODO: WHAT ABOUT TIE?
         winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
         sorted_keys = sorted(
             self.player_statistics[index].items(), key=lambda x: x[1], reverse=True)
@@ -67,7 +69,18 @@ class Server():
         name = self.teams[fastest_typer_index].split('\n')[0]
 
         # Game Over Message
-        message = f"\nGame over!\nGroup 1 typed in {self.scores[0]} characters. Group 2 typed in {self.scores[1]} characters.\nGroup {winner+1} wins!\n\nGlobal Results:\nThe fastest team was {name} with {max_press} characters!\n\nPersonal Results:\nYou pressed {self.player_key_press[index]} characters\nYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\nYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\nCongratulations to the winners:\n{winner_team}"
+        message = f"\nGame over!\n" \
+                  f"Group 1 typed in {self.scores[0]} characters. " \
+                  f"Group 2 typed in {self.scores[1]} characters.\n" \
+                  f"Group {winner+1} wins!\n\n" \
+                  f"Global Results:\n" \
+                  f"\tThe fastest team was {name} with {max_press} characters!\n\n" \
+                  f"Personal Results:\n" \
+                  f"\tYou pressed {self.player_key_press[index]} characters\n" \
+                  f"\tYour most common character was '{most_common_key}' with {most_common_key_pressed} presses!\n" \
+                  f"\tYour least common character was '{least_common_key}' with {least_common_key_pressed} presses.\n\n" \
+                  f"Congratulations to the winners:\n{winner_team}"
+
         c.send(bytes(message, encoding='utf8'))
         self.start_game = False
         # connection closed
@@ -80,6 +93,7 @@ class Server():
         self.lock.release()
         self.player_key_press = [0, 0, 0, 0]
         self.player_statistics = [{}, {}, {}, {}]
+        self.lock.release()
 
     def pretty_print(self, data):
         bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
@@ -103,8 +117,7 @@ class Server():
 
             self.lock.acquire()
             self.num_particants += 1
-            if self.num_particants == 1:
-                random.shuffle(self.teams)
+            random.shuffle(self.teams)
             self.lock.release()
 
             # Start a new thread and return its identifier
@@ -122,7 +135,7 @@ class Server():
 
     def broadcast(self):
         while True:
-            if not self.start_game:
+            if not self.start_game: # TODO: stop while after end game broadcast again
                 start_time = time.time()
                 server = socket.socket(
                     socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -138,6 +151,6 @@ class Server():
                 server.settimeout(0.2)
 
                 while time.time() - start_time < 10:
-                    server.sendto(struct.pack('Ibh', 0xfeedbeef, 2, 2025), ('<broadcast>', self.broadcastPort))
+                    server.sendto(struct.pack('Ibh', 0xfeedbeef, 2, self.port), ('<broadcast>', self.broadcastPort))
                     time.sleep(1)
                 self.start_game = True
