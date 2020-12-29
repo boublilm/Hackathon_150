@@ -139,10 +139,6 @@ class Server():
         thread = threading.Thread(target=self.broadcast)
         thread.start()
 
-    def stopBroadcasting(self):
-        # Sets the broadcast loop's statement to false, thus -> will stop broadcasting.
-        self.toBroadcast = False
-
     def broadcast(self):
         start_time = time.time()
         server = socket.socket(
