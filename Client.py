@@ -2,7 +2,7 @@ import socket
 import threading
 import sys
 import os
-import time
+import struct
 import random
 import colorama
 
@@ -24,19 +24,22 @@ class Client():
         text = "Client started, listening for offer requests..."
         self.pretty_print(text)
         # Binds client to listen on port self.port. (will be 13117)
-        try:
-            s.bind(('', self.port))
-        except:
-            self.listen()
-        # Receives Message
-        message = s.recvfrom(1024)[0]
+        while True:
+            try:
+                s.bind(('', self.port))
+            except:
+                continue
+            # Receives Message
+            message, address = s.recvfrom(1024)
+            try:
+                magic_cookie, message_type, port_tcp = struct.unpack('IbH', message)
+            except:
+                continue
 
-        # Message Teardown.
-        # magic_cookie = message[:4]
-        # message_type = message[4]
-        port_tcp = message[5:]
-        self.connectTCPServer(int.from_bytes(
-            port_tcp, byteorder='big', signed=False))
+            if magic_cookie != 0xfeedbeef: continue
+            break
+
+        self.connectTCPServer(address[0], port_tcp)
 
     def pretty_print(self, data):
         bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']

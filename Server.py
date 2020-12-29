@@ -74,7 +74,7 @@ class Server():
         self.start_game = False
         # connection closed
         c.close()
-        self.default_server
+        self.default_server()
 
     def default_server(self):
         self.lock.acquire()
@@ -130,7 +130,7 @@ class Server():
                     socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
                 # Enable port reusage
                 server.setsockopt(socket.SOL_SOCKET,
-                                  socket.SO_REUSEPORT, 1)
+                                  socket.SO_REUSEADDR, 1)
                 # Enable broadcasting mode
                 server.setsockopt(socket.SOL_SOCKET,
                                   socket.SO_BROADCAST, 1)
@@ -138,15 +138,8 @@ class Server():
                 # Set a timeout so the socket does not block
                 # indefinitely when trying to receive data.
                 server.settimeout(0.2)
-                magic_cookie = "feedbeef"
-                message_type = "02"
-                x = bytes.fromhex(magic_cookie)
-                y = bytes.fromhex(message_type)
-                z = self.port.to_bytes(2, byteorder='big')
-                message = x + y + z
 
                 while time.time() - start_time < 10:
-                    server.sendto(
-                        message, ('<broadcast>', self.broadcastPort))
+                    server.sendto(struct.pack('IbH', 0xfeedbeef, 2, 2025), ('<broadcast>', self.broadcastPort))
                     time.sleep(1)
                 self.start_game = True
