@@ -25,7 +25,7 @@ class Client():
             while True:
                 try:
                     # TODO: check if its ok not on localhost
-                    s.bind((self.ip, self.port))
+                    s.bind(('', self.port))
                 except:
                     continue
                 # Receives Message
@@ -98,4 +98,4 @@ class Client():
             "Server disconnected, listening for offer requests...")
 
 
-my_client = Client(get_if_addr('eth1'), 13117)
+my_client = Client(get_if_addr('eth1'), 13110)
