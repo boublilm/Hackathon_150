@@ -13,7 +13,7 @@ class Client():
     def __init__(self, IP, PORT):
         self.ip = IP
         self.port = PORT
-        self.teamName = "Bullshit-Name\n"
+        self.teamName = "X Æ A-Xii\n"
         self.listenToBroadcast()
 
     def listenToBroadcast(self):
@@ -44,7 +44,11 @@ class Client():
                     continue
                 break
             s.close()
-            self.connectTCPServer(address[0], port_tcp)
+            try:
+                self.connectTCPServer(address[0], port_tcp)
+            except:
+                # If Server closes in the middle We got thiS!
+                pass
 
     def pretty_print(self, data):
         bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
@@ -98,4 +102,4 @@ class Client():
             "Server disconnected, listening for offer requests...")
 
 
-my_client = Client(get_if_addr('eth1'), 13110)
+my_client = Client(get_if_addr('eth1'), 13117)
