@@ -37,30 +37,30 @@ class Server():
             TeamName = "SMART ASS WITH A STUPID NAME WHO TRIED TO GET MY SERVER DOWN"
         self.teams += [TeamName]
 
+        # wait until game will start
         while not self.start_game:
             time.sleep(0.1)
 
         # setting team names in a variable
         team1 = ''.join(self.teams[:int(len(self.teams)/2)])
         team2 = ''.join(self.teams[int(len(self.teams)/2):])
-        # S Sending start message
+        # Sending start message to my client
         try:
             c.send(bytes(
                 f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n{team1}Group 2:\n{team2}\nStart pressing keys on your keyboard as fast as you can!!",
                 encoding='utf8'))
-        except:
+        except: # client disconnected
             pass
 
-        index = self.teams.index(TeamName) // 2
+        index = self.teams.index(TeamName)
         team_index = 0 if TeamName in team1 else 1
         # While not past 10 seconds - listen to key presses.
         start_time = time.time()
-        while time.time() - start_time < 10:
-            # data received from client
-            try:
+        while time.time() - start_time < 10: # play 10 seconds
+            try: # data received from client
                 rlist, _, _ = select([c], [], [], 0.1)
                 if rlist:
-                    data = c.recv(1024)
+                    data = c.recv(1024) # new key pressings
                     if not data:
                         time.sleep(0.1)
                         continue
@@ -75,8 +75,6 @@ class Server():
         winner = 0 if (self.scores[0] > self.scores[1]
                        ) else 1 if self.scores[0] < self.scores[1] else -1
         winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
-        # TODO: MAX NOT WORKING with 0 elements
-        # if len()
         max_press = max(self.player_key_press)
         fastest_typer_index = self.player_key_press.index(max_press)
         name = self.teams[fastest_typer_index].split('\n')[0]
@@ -101,7 +99,7 @@ class Server():
             results = f"Group {winner+1} wins!\n\n" \
                       f"Congratulations to the winners:\n{winner_team}\n"
 
-        if (max_press == 0):
+        if (max_press == 0): # not played
             global_stat = f"Global Results:\n" \
                 f"\tAll teams are loosers, no one pressed a single button, WHY AM I RUNNING FOR THEN?!?!!\n\n"
         else:
@@ -130,6 +128,9 @@ class Server():
         self.lock.release()
 
     def default_server(self):
+        """
+        Returning Server to default values before new game.
+        """
         self.teams = []
         self.player_key_press = []
         self.scores = [0, 0]
@@ -163,10 +164,10 @@ class Server():
             s.listen()
             while not self.start_game:  # while there is no game
                 # establish connection with client
-                rlist, _, _ = select([s], [], [], 2)
-                if rlist:
+                client_coming, _, _ = select([s], [], [], 2)
+                if client_coming:
                     c, addr = s.accept()
-
+                    # set gaming for player
                     self.lock.acquire()
                     self.num_participants += 1
                     self.player_key_press.append(0)

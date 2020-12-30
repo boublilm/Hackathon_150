@@ -14,7 +14,7 @@ class Client():
     def __init__(self, IP, PORT):
         self.ip = IP
         self.port = PORT
-        self.teamName = "#TODO: GET 100 AND GO HOME\n"
+        self.teamName = "#TODO: GET 100 AND GO HOME"
         self.broadcastIP = '.'.join(IP.split('.')[:2]) + '.255.255'
         self.listenToBroadcast()
 
@@ -26,23 +26,23 @@ class Client():
             try:
                 s.bind((self.broadcastIP, self.port))
             except:
+                s.close()
                 time.sleep(0.2)
                 continue
+
             # Binds client to listen on port self.port. (will be 13117)
             while True:
-                # Receives Message
-                try:
+                try:  # Receives Message
                     message, address = s.recvfrom(1024)
-                    magic_cookie, message_type, port_tcp = struct.unpack(
-                        ">IbH", message)
+                    magic_cookie, message_type, port_tcp = struct.unpack(">IbH", message)
+
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
+                    # Drop message if magic cookie is wrong \ not type 2
                     if magic_cookie == bytes.fromhex('feedbeef') or message_type == 2:
                         s.close()
                         self.connectTCPServer(address[0], port_tcp)
                 except:
-                    print("Not connecting, Trying another server...")
-                    print(message,address)
                     time.sleep(0.2)
                     continue
                 break
@@ -52,25 +52,22 @@ class Client():
         codes = vars(colorama.Fore)
         colors = [codes[color] for color in codes if color not in bad_colors]
         colored_chars = [random.choice(colors) + char for char in data]
-
         print(''.join(colored_chars))
+
 
     def connectTCPServer(self, ip_tcp, port_tcp):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # connect to tcp server
-        while True:
-            try:
-                s.connect((ip_tcp, port_tcp))
-                break
-            except:
-                return
+        s.settimeout(11)
+        try: # connect to server via TCP
+            s.connect((ip_tcp, port_tcp))
+        except:
+            return
 
         # Sending team name
-        s.send(bytes(self.teamName, encoding='utf8'))
+        s.send(bytes(self.teamName + "\n", encoding='utf8'))
 
-        # Receive data from Server - start game
-
-        incoming_data = select([s], [], [], 11)
+        # Receive data from Server - StartGame message
+        incoming_data, a, b = select([s], [], [], 11)
         if incoming_data:
             data = str(s.recv(1024), 'utf-8')
             self.pretty_print(data)
@@ -78,31 +75,31 @@ class Client():
             s.close()
             return
 
-        # Setting blocking to false, Data to none and removing key presses representation
+        # Playing
         data = None
-        s.setblocking(False)
-        os.system("stty raw -echo")
+        s.setblocking(False) # don't wait while s.recv
+        os.system("stty raw -echo")  # removing key presses representation
         start_time = time.time()
-        while time.time() - start_time < 11:
-            # if data is recieved it will stop and print, else it will send every key press to the server.
-            try:
+        while time.time() - start_time < 11: # we wan't timeout in case server stops in the middle
+            try: # check if EndGame packet received from server
                 data = s.recv(1024)
             except:
                 pass
-            if data:
+            if data:  # server sent EndGame packet
                 os.system("stty -raw echo")
                 data = str(data, 'utf-8')
                 self.pretty_print(data)
                 break
-            else:
-                rlist, _, _ = select([sys.stdin], [], [], 0.1)
-                if rlist:
+            else:  # still typing
+                character_coming, _, _ = select([sys.stdin], [], [], 0.1)
+                if character_coming:
                     c = sys.stdin.read(1)
                     s.send(bytes(c, encoding='utf8'))
+
+        # Game over
         os.system("stty -raw echo")
         s.close()
-        self.pretty_print(
-            "Server disconnected, listening for offer requests...")
+        self.pretty_print("Server disconnected, listening for offer requests...")
 
 
 my_client = Client(get_if_addr('eth1'), 13117)
