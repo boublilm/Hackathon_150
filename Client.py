@@ -25,7 +25,7 @@ class Client():
             self.pretty_print(text)
             try:
                 # TODO: check if its ok not on localhost
-                s.bind((self.broadcastIP, self.port))
+                s.bind((self.ip, self.port))
             except:
                 time.sleep(0.2)
                 continue
@@ -44,6 +44,7 @@ class Client():
                         self.connectTCPServer(address[0], port_tcp)
                 except:
                     print("Not connecting, Trying another server...")
+                    time.sleep(0.2)
                     continue
                 break
             s.close()
@@ -107,4 +108,4 @@ class Client():
             "Server disconnected, listening for offer requests...")
 
 
-my_client = Client(get_if_addr('eth1'), 13116)
+my_client = Client(get_if_addr('eth1'), 13117)

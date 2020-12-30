@@ -199,7 +199,6 @@ class Server():
         server.setsockopt(socket.SOL_SOCKET,
                           socket.SO_BROADCAST, 1)
 
-        
         magic_cookie = "feedbeef"
         message_type = "02"
         x = bytes.fromhex(magic_cookie)
@@ -208,9 +207,9 @@ class Server():
         message = x + y + z
         broadcastIP = '.'.join(self.ip.split('.')[:2]) + '.255.255'
         while time.time() - start_time < 10:
-            server.sendto(message, (broadcastIP, self.broadcastPort))  # subnet + str(i)
+            server.sendto(message, (broadcastIP, self.broadcastPort))
             time.sleep(1)
         self.start_game = True
 
 
-Server(get_if_addr('eth1'), 2025, 13116)
+Server(get_if_addr('eth1'), 2025, 13117)
