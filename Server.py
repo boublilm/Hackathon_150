@@ -31,7 +31,10 @@ class Server():
         thread.start()
 
     def clientHandler(self, c):
-        TeamName = str(c.recv(1024), 'utf-8')
+        try:
+            TeamName = str(c.recv(1024), 'utf-8')
+        except:
+            TeamName = "SMART ASS WITH A STUPID NAME WHO TRIED TO GET MY SERVER DOWN"
         self.teams += [TeamName]
 
         while not self.start_game:

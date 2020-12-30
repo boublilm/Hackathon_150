@@ -35,15 +35,10 @@ class Client():
                         'Ibh', message)
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
+                    if magic_cookie == 0xfeedbeef or message_type == 0x2:
+                        self.connectTCPServer(address[0], port_tcp)
                 except:
                     continue
-
-                if magic_cookie == 0xfeedbeef or message_type == 0x2:
-                    try:
-                        self.connectTCPServer(address[0], port_tcp)
-                    except:
-                        # If Server closes in the middle We got thiS!
-                        continue
                 break
             s.close()
 
