@@ -24,7 +24,7 @@ class Client():
             text = "Client started, listening for offer requests..."
             self.pretty_print(text)
             try:
-                s.bind((self.ip, self.port))
+                s.bind((self.broadcastIP, self.port))
             except:
                 time.sleep(0.2)
                 continue
