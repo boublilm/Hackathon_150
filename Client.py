@@ -21,13 +21,13 @@ class Client():
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             text = "Client started, listening for offer requests..."
             self.pretty_print(text)
+            try:
+                # TODO: check if its ok not on localhost
+                s.bind(('', self.port))
+            except:
+                continue
             # Binds client to listen on port self.port. (will be 13117)
             while True:
-                try:
-                    # TODO: check if its ok not on localhost
-                    s.bind(('', self.port))
-                except:
-                    continue
                 # Receives Message
                 message, address = s.recvfrom(1024)
                 try:
@@ -36,19 +36,16 @@ class Client():
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
                 except:
-                    s.close()
                     continue
 
-                if magic_cookie != 0xfeedbeef or message_type != 0x2:
-                    s.close()
-                    continue
+                if magic_cookie == 0xfeedbeef or message_type == 0x2:
+                    try:
+                        self.connectTCPServer(address[0], port_tcp)
+                    except:
+                        # If Server closes in the middle We got thiS!
+                        continue
                 break
             s.close()
-            try:
-                self.connectTCPServer(address[0], port_tcp)
-            except:
-                # If Server closes in the middle We got thiS!
-                pass
 
     def pretty_print(self, data):
         bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
