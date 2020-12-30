@@ -199,13 +199,7 @@ class Server():
         server.setsockopt(socket.SOL_SOCKET,
                           socket.SO_BROADCAST, 1)
 
-        magic_cookie = "feedbeef"
-        message_type = "02"
-        x = bytes.fromhex(magic_cookie)
-        y = bytes.fromhex(message_type)
-        z = self.port.to_bytes(2, byteorder='big')
-        message = x + y + z
-        broadcastIP = '.'.join(self.ip.split('.')[:2]) + '.255.255'
+        message = struct.pack(">IbH", 0xfeedbeef, 0x2, self.port)
         while time.time() - start_time < 10:
             server.sendto(message, (broadcastIP, self.broadcastPort))
             time.sleep(1)

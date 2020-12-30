@@ -33,10 +33,8 @@ class Client():
                 # Receives Message
                 try:
                     message, address = s.recvfrom(1024)
-                    magic_cookie = message[:4]
-                    message_type = message[4]
-                    port_tcp = int.from_bytes(
-                        message[5:], byteorder='big', signed=False)
+                    magic_cookie, message_type, port_tcp = struct.unpack(
+                        ">IbH", message)
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
                     if magic_cookie == bytes.fromhex('feedbeef') or message_type == 2:
