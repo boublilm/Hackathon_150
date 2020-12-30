@@ -125,6 +125,7 @@ class Server():
     def default_server(self):
         self.teams = []
         self.player_key_press = []
+        self.scores = [0, 0]
         self.player_statistics = []
         self.start_game = False
         self.game_finished = False
