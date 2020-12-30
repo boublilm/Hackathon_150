@@ -6,6 +6,7 @@ from _thread import start_new_thread
 import colorama
 import struct
 from select import select
+from scapy.arch import get_if_addr
 
 
 class Server():
@@ -68,6 +69,7 @@ class Server():
                        ) else 1 if self.scores[0] < self.scores[1] else -1
         winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
         # TODO: MAX NOT WORKING with 0 elements
+        # if len()
         max_press = max(self.player_key_press)
         fastest_typer_index = self.player_key_press.index(max_press)
         name = self.teams[fastest_typer_index].split('\n')[0]
@@ -92,8 +94,12 @@ class Server():
             results = f"Group {winner+1} wins!\n\n" \
                       f"Congratulations to the winners:\n{winner_team}\n"
 
-        global_stat = f"Global Results:\n" \
-                      f"\tThe fastest team was {name} with {max_press} characters!\n\n"
+        if (max_press == 0):
+            global_stat = f"Global Results:\n" \
+                f"\tAll teams are loosers, no one pressed a single button, WHY AM I RUNNING FOR THEN?!?!!\n\n"
+        else:
+            global_stat = f"Global Results:\n" \
+                f"\tThe fastest team was {name} with {max_press} characters!\n\n"
 
         if played:
             personal = f"Personal Results:\n" \
@@ -105,21 +111,24 @@ class Server():
                 f"You suck! You didn't type anything!!"
 
         message = game_finished + results + global_stat + personal
+        try:
+            c.send(bytes(message, encoding='utf8'))
+        except:
+            pass
 
-        c.send(bytes(message, encoding='utf8'))
-        self.start_game = False
         # connection closed
         c.close()
-        self.game_finished = True
-        self.default_server()
+        self.lock.acquire()
+        self.num_participants -= 1
+        self.lock.release()
 
     def default_server(self):
-        self.lock.acquire()
         self.teams = []
         self.player_key_press = []
         self.player_statistics = []
+        self.start_game = False
+        self.game_finished = False
         self.num_participants = 0
-        self.lock.release()
 
     def pretty_print(self, data):
         bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
@@ -129,23 +138,22 @@ class Server():
 
         print(''.join(colored_chars))
 
-    def TCPServer(self):
+    def TCPServer(self):  # Main thread
         while True:
-            self.game_finished = False
+            # End Game
+            self.default_server()
+            # Create TCP server welcome socket
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
-                s.bind((self.ip, self.port))
+                s.bind((self.ip, self.port))  # 2025
             except:
                 continue
             text = f"Server started, listening on IP address {self.ip}"
             self.pretty_print(text)
-            self.startBroadcasting()
+            self.startBroadcasting()  # split to new thread, will be closed after 10 sec
             s.listen()
-            while not self.game_finished:
-                if self.start_game and self.num_participants == 0:
-                    self.start_game = False
-                    break
+            while not self.start_game:  # while there is no game
                 # establish connection with client
                 rlist, _, _ = select([s], [], [], 2)
                 if rlist:
@@ -160,6 +168,10 @@ class Server():
 
                     # Start a new thread and return its identifier
                     start_new_thread(self.clientHandler, (c,))
+
+            while self.num_participants > 0:
+                time.sleep(1)
+
             s.close()
             self.pretty_print("Game over, sending out offer requests...")
 
@@ -179,9 +191,13 @@ class Server():
         server.setsockopt(socket.SOL_SOCKET,
                           socket.SO_BROADCAST, 1)
 
+        subnet = '.'.join(self.ip.split('.')[:3]) + '.'
         while time.time() - start_time < 10:
             for i in range(256):
                 server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2,
-                                          self.port), ('172.1.0.'+str(i), self.broadcastPort))
+                                          self.port), (subnet + str(i), self.broadcastPort))
             time.sleep(1)
         self.start_game = True
+
+
+Server(get_if_addr('eth1'), 2025, 13117)

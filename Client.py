@@ -6,6 +6,7 @@ import struct
 import random
 import colorama
 from select import select
+from scapy.arch import get_if_addr
 
 
 class Client():
@@ -95,3 +96,6 @@ class Client():
         s.close()
         self.pretty_print(
             "Server disconnected, listening for offer requests...")
+
+
+my_client = Client(get_if_addr('eth1'), 13117)
