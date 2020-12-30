@@ -24,7 +24,6 @@ class Client():
             text = "Client started, listening for offer requests..."
             self.pretty_print(text)
             try:
-                # TODO: check if its ok not on localhost
                 s.bind((self.ip, self.port))
             except:
                 time.sleep(0.2)
@@ -62,7 +61,6 @@ class Client():
         # connect to tcp server
         while True:
             try:
-                # TODO: CHANGE IP TO NON LOCAL
                 s.connect((ip_tcp, port_tcp))
                 break
             except:
