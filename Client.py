@@ -23,7 +23,7 @@ class Client():
             self.pretty_print(text)
             try:
                 # TODO: check if its ok not on localhost
-                s.bind(('', self.port))
+                s.bind(('172.99.255.255', self.port))
             except:
                 continue
             # Binds client to listen on port self.port. (will be 13117)
@@ -38,6 +38,7 @@ class Client():
                     if magic_cookie == 0xfeedbeef or message_type == 0x2:
                         self.connectTCPServer(address[0], port_tcp)
                 except:
+                    print("Problem here")
                     continue
                 break
             s.close()
@@ -88,10 +89,10 @@ class Client():
                 if rlist:
                     c = sys.stdin.read(1)
                     s.send(bytes(c, encoding='utf8'))
-
+        os.system("stty -raw echo")
         s.close()
         self.pretty_print(
             "Server disconnected, listening for offer requests...")
 
 
-my_client = Client(get_if_addr('eth1'), 13117)
+my_client = Client(get_if_addr('eth2'), 13117)

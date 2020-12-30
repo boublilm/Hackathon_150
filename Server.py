@@ -62,6 +62,7 @@ class Server():
                 if rlist:
                     data = c.recv(1024)
                     if not data:
+                        time.sleep(0.1)
                         continue
                     self.scores[team_index] += 1
                     num_key = self.player_statistics[index].get(data, 0) + 1
@@ -200,11 +201,11 @@ class Server():
 
         subnet = '.'.join(self.ip.split('.')[:3]) + '.'
         while time.time() - start_time < 10:
-            for i in range(256):
-                server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2,
-                                          self.port), (subnet + str(i), self.broadcastPort))
+            # for i in range(256):
+            server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2,
+                                      self.port), ('172.99.255.255', self.broadcastPort))  # subnet + str(i)
             time.sleep(1)
         self.start_game = True
 
 
-Server(get_if_addr('eth1'), 2025, 13117)
+Server(get_if_addr('eth2'), 2025, 13117)
