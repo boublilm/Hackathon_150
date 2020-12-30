@@ -53,7 +53,7 @@ class Server():
             try:
                 rlist, _, _ = select([c], [], [], 0.1)
                 if rlist:
-                    data = c.recv(1024)  # TODO: TIMEOUT
+                    data = c.recv(1024)
                     if not data:
                         continue
                     self.scores[team_index] += 1
@@ -67,6 +67,7 @@ class Server():
         winner = 0 if (self.scores[0] > self.scores[1]
                        ) else 1 if self.scores[0] < self.scores[1] else -1
         winner_team = team1 if (self.scores[0] > self.scores[1]) else team2
+        # TODO: MAX NOT WORKING with 0 elements
         max_press = max(self.player_key_press)
         fastest_typer_index = self.player_key_press.index(max_press)
         name = self.teams[fastest_typer_index].split('\n')[0]
@@ -129,8 +130,7 @@ class Server():
         print(''.join(colored_chars))
 
     def TCPServer(self):
-        while True:  # TODO: SERVER NOT COMING BACK?!!?!?
-            # TODO: SERVER WILL NOT RUN WITH 0 PARTICIPANTS!
+        while True:
             self.game_finished = False
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -179,12 +179,9 @@ class Server():
         server.setsockopt(socket.SOL_SOCKET,
                           socket.SO_BROADCAST, 1)
 
-        # Set a timeout so the socket does not block
-        # indefinitely when trying to receive data.
-        server.settimeout(0.2)
-
         while time.time() - start_time < 10:
-            server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2,
-                                      self.port), ('<broadcast>', self.broadcastPort))
+            for i in range(256):
+                server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2,
+                                          self.port), ('172.1.0.'+str(i), self.broadcastPort))
             time.sleep(1)
         self.start_game = True

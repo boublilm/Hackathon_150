@@ -24,7 +24,7 @@ class Client():
             while True:
                 try:
                     # TODO: check if its ok not on localhost
-                    s.bind(('', self.port))  # TODO: ERROR second try
+                    s.bind((self.ip, self.port))
                 except:
                     continue
                 # Receives Message
@@ -59,7 +59,7 @@ class Client():
         while True:
             try:
                 # TODO: CHANGE IP TO NON LOCAL
-                s.connect(('localhost', port_tcp))
+                s.connect((ip_tcp, port_tcp))
                 break
             except:
                 return
