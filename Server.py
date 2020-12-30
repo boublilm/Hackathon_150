@@ -199,13 +199,18 @@ class Server():
         server.setsockopt(socket.SOL_SOCKET,
                           socket.SO_BROADCAST, 1)
 
-        subnet = '.'.join(self.ip.split('.')[:3]) + '.'
+        
+        magic_cookie = "feedbeef"
+        message_type = "02"
+        x = bytes.fromhex(magic_cookie)
+        y = bytes.fromhex(message_type)
+        z = self.port.to_bytes(2, byteorder='big')
+        message = x + y + z
+        broadcastIP = '.'.join(self.ip.split('.')[:2]) + '.255.255'
         while time.time() - start_time < 10:
-            # for i in range(256):
-            server.sendto(struct.pack('Ibh', 0xfeedbeef, 0x2,
-                                      self.port), ('172.99.255.255', self.broadcastPort))  # subnet + str(i)
+            server.sendto(message, (broadcastIP, self.broadcastPort))  # subnet + str(i)
             time.sleep(1)
         self.start_game = True
 
 
-Server(get_if_addr('eth2'), 2025, 13117)
+Server(get_if_addr('eth1'), 2025, 13116)

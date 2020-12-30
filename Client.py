@@ -7,6 +7,7 @@ import random
 import colorama
 from select import select
 from scapy.arch import get_if_addr
+import time
 
 
 class Client():
@@ -14,6 +15,7 @@ class Client():
         self.ip = IP
         self.port = PORT
         self.teamName = "#TODO: GET 100 AND GO HOME\n"
+        self.broadcastIP = '.'.join(IP.split('.')[:2]) + '.255.255'
         self.listenToBroadcast()
 
     def listenToBroadcast(self):
@@ -23,22 +25,25 @@ class Client():
             self.pretty_print(text)
             try:
                 # TODO: check if its ok not on localhost
-                s.bind(('172.99.255.255', self.port))
+                s.bind((self.broadcastIP, self.port))
             except:
+                time.sleep(0.2)
                 continue
             # Binds client to listen on port self.port. (will be 13117)
             while True:
                 # Receives Message
-                message, address = s.recvfrom(1024)
                 try:
-                    magic_cookie, message_type, port_tcp = struct.unpack(
-                        'Ibh', message)
+                    message, address = s.recvfrom(1024)
+                    magic_cookie = message[:4]
+                    message_type = message[4]
+                    port_tcp = int.from_bytes(
+                        message[5:], byteorder='big', signed=False)
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
-                    if magic_cookie == 0xfeedbeef or message_type == 0x2:
+                    if magic_cookie == bytes.fromhex('feedbeef') or message_type == 2:
                         self.connectTCPServer(address[0], port_tcp)
                 except:
-                    print("Problem here")
+                    print("Not connecting, Trying another server...")
                     continue
                 break
             s.close()
@@ -66,14 +71,21 @@ class Client():
         s.send(bytes(self.teamName, encoding='utf8'))
 
         # Receive data from Server - start game
-        data = str(s.recv(1024), 'utf-8')
-        self.pretty_print(data)
+
+        incoming_data = select([s], [], [], 11)
+        if incoming_data:
+            data = str(s.recv(1024), 'utf-8')
+            self.pretty_print(data)
+        else:  # server disconnected before game started, we waited for him 11 seconds to start the stuupid game
+            s.close()
+            return
 
         # Setting blocking to false, Data to none and removing key presses representation
         data = None
         s.setblocking(False)
         os.system("stty raw -echo")
-        while True:
+        start_time = time.time()
+        while time.time() - start_time < 11:
             # if data is recieved it will stop and print, else it will send every key press to the server.
             try:
                 data = s.recv(1024)
@@ -95,4 +107,4 @@ class Client():
             "Server disconnected, listening for offer requests...")
 
 
-my_client = Client(get_if_addr('eth2'), 13117)
+my_client = Client(get_if_addr('eth1'), 13116)
