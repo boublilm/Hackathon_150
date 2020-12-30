@@ -38,13 +38,14 @@ class Client():
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
                     if magic_cookie == bytes.fromhex('feedbeef') or message_type == 2:
+                        s.close()
                         self.connectTCPServer(address[0], port_tcp)
                 except:
                     print("Not connecting, Trying another server...")
+                    print(message,address)
                     time.sleep(0.2)
                     continue
                 break
-            s.close()
 
     def pretty_print(self, data):
         bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
