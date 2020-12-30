@@ -200,6 +200,7 @@ class Server():
                           socket.SO_BROADCAST, 1)
 
         message = struct.pack(">IbH", 0xfeedbeef, 0x2, self.port)
+        broadcastIP = '.'.join(self.ip.split('.')[:2]) + '.255.255'
         while time.time() - start_time < 10:
             server.sendto(message, (broadcastIP, self.broadcastPort))
             time.sleep(1)
