@@ -22,11 +22,11 @@ class Client():
             self.pretty_print(text)
             # Binds client to listen on port self.port. (will be 13117)
             while True:
-                # try:
-                # TODO: check if its ok not on localhost
-                s.bind(('', self.port))  # TODO: ERROR second try
-                # except:
-                #     continue
+                try:
+                    # TODO: check if its ok not on localhost
+                    s.bind(('', self.port))  # TODO: ERROR second try
+                except:
+                    continue
                 # Receives Message
                 message, address = s.recvfrom(1024)
                 try:
@@ -35,12 +35,14 @@ class Client():
                     text = f"Received offer from {address[0]}, attempting to connect..."
                     self.pretty_print(text)
                 except:
+                    s.close()
                     continue
 
                 if magic_cookie != 0xfeedbeef or message_type != 0x2:
+                    s.close()
                     continue
                 break
-
+            s.close()
             self.connectTCPServer(address[0], port_tcp)
 
     def pretty_print(self, data):

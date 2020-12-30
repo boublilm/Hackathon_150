@@ -114,6 +114,7 @@ class Server():
 
     def default_server(self):
         self.lock.acquire()
+        self.teams = []
         self.player_key_press = []
         self.player_statistics = []
         self.num_participants = 0
