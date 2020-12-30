@@ -13,7 +13,7 @@ class Client():
     def __init__(self, IP, PORT):
         self.ip = IP
         self.port = PORT
-        self.teamName = "X Æ A-Xii\n"
+        self.teamName = "X Æ A-12\n"
         self.listenToBroadcast()
 
     def listenToBroadcast(self):
