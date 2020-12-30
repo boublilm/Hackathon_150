@@ -44,9 +44,12 @@ class Server():
         team1 = ''.join(self.teams[:int(len(self.teams)/2)])
         team2 = ''.join(self.teams[int(len(self.teams)/2):])
         # S Sending start message
-        c.send(bytes(
-            f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n{team1}Group 2:\n{team2}\nStart pressing keys on your keyboard as fast as you can!!",
-            encoding='utf8'))
+        try:
+            c.send(bytes(
+                f"Welcome to Keyboard Spamming Battle Royale.\nGroup 1:\n{team1}Group 2:\n{team2}\nStart pressing keys on your keyboard as fast as you can!!",
+                encoding='utf8'))
+        except:
+            pass
 
         index = self.teams.index(TeamName) // 2
         team_index = 0 if TeamName in team1 else 1
